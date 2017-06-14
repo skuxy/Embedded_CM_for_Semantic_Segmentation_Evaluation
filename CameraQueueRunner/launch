@@ -1,0 +1,6 @@
+#!/bin/sh
+
+export GI_TYPELIB_PATH=$GI_TYPELIB_PATH:../aravis/aravis/src
+export LD_LIBRARY_PATH=../aravis/aravis/src/.libs
+
+python3.5 $*
