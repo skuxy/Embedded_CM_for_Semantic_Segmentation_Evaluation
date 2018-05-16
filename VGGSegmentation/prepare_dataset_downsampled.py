@@ -1,4 +1,7 @@
+#! /usr/bin/env python
+
 import os
+import sys
 import pickle
 import numpy as np
 import tensorflow as tf
@@ -7,17 +10,20 @@ import skimage.data
 import skimage.transform
 from tqdm import trange
 
+input_dit = sys.argv[1]
+output_dir = sys.argv[2]
 
 FLAGS = tf.app.flags.FLAGS
+
 tf.app.flags.DEFINE_string('data_dir',
-    '/mnt/sdb1/kivan/datasets/Cityscapes/2048x1024/', 'Dataset dir')
+    input_dit, 'Dataset dir')
 #tf.app.flags.DEFINE_integer('img_width', 640, '')
 #tf.app.flags.DEFINE_integer('img_height', 288, '')
 tf.app.flags.DEFINE_integer('img_width', 320, '')
 tf.app.flags.DEFINE_integer('img_height', 144, '')
 #tf.app.flags.DEFINE_integer('img_width', 1024, '')
 #tf.app.flags.DEFINE_integer('img_height', 448, '')
-tf.app.flags.DEFINE_string('save_dir', '/home/smocilac/datasets/Cityscapes/tensorflow/'
+tf.app.flags.DEFINE_string('save_dir', output_dir + '/'
     + '{}x{}'.format(FLAGS.img_width, FLAGS.img_height) + '/', '')
 # leave out the car hood
 tf.app.flags.DEFINE_integer('cx_start', 0, '')
