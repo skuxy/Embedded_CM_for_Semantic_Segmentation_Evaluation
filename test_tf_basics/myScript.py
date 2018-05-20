@@ -84,7 +84,6 @@ def main(argv):
     path_to_script = os.path.realpath(__file__)
     filtered_path = path_to_script.split('/')[:-1]
     filtered_path = "/".join(filtered_path)
-    print(filtered_path)
 
     rgb_path = filtered_path + '/aachen_000015_000019.ppm'
     rgb = ski.data.load(rgb_path)
