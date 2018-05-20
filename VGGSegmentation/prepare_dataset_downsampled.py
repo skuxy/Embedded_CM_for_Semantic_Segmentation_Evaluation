@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 import os
-import sys
+import argparse
 import pickle
 import numpy as np
 import tensorflow as tf
@@ -10,13 +10,19 @@ import skimage.data
 import skimage.transform
 from tqdm import trange
 
-input_dit = sys.argv[1]
-output_dir = sys.argv[2]
+
+parser = argparse.ArgumentParser(description="Prepare downsampled dataset")
+parser.add_argument('input_dir')
+parser.add_argument('output_dir')
+parser.parse_args()
+
+input_dir = parser['input_dir']
+output_dir = parser['output_dir']
 
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('data_dir',
-                           input_dit, 'Dataset dir')
+                           input_dir, 'Dataset dir')
 
 # tf.app.flags.DEFINE_integer('img_width', 640, '')
 # tf.app.flags.DEFINE_integer('img_height', 288, '')
@@ -77,15 +83,17 @@ def create_tfrecord(rgb, label_map, weight_map, depth_img, num_labels, img_name,
 
 def prepare_dataset(name):
     print('Preparing ' + name)
+
     root_dir = FLAGS.data_dir + '/rgb/' + name + '/'
     depth_dir = os.path.join(FLAGS.data_dir, 'depth', name)
     print(depth_dir)
+
     gt_dir = FLAGS.data_dir + '/gt_data/' + name + '/'
     cities = next(os.walk(root_dir))[1]
     save_dir = FLAGS.save_dir + name + '/'
     print('Save dir = ', save_dir)
+
     os.makedirs(save_dir, exist_ok=True)
-    # print('Writing', filename)
     cx_start = FLAGS.cx_start
     cx_end = FLAGS.cx_end
     cy_start = FLAGS.cy_start
