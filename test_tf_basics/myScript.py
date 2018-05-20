@@ -81,24 +81,28 @@ def main(argv):
     cy_start = FLAGS.cy_start
     cy_end = FLAGS.cy_end
 
+    path_to_script = os.path.realpath(__file__)
+    filtered_path = path_to_script.split('/')[:-1]
+    filtered_path = "/".join(filtered_path)
+    print(filtered_path)
 
-    rgb_path = './aachen_000015_000019.ppm'
+    rgb_path = filtered_path + '/aachen_000015_000019.ppm'
     rgb = ski.data.load(rgb_path)
     rgb = np.ascontiguousarray(rgb[cy_start:cy_end,cx_start:cx_end,:])
     rgb = ski.transform.resize( rgb, (FLAGS.img_height, FLAGS.img_width), preserve_range=True, order=3)
     rgb = rgb.astype(np.uint8)
-    ski.io.imsave('./rgb_img_no_hauba.png', rgb)
+    ski.io.imsave(filtered_path + '/rgb_img_no_hauba.png', rgb)
     exit()
     rgb = ski.transform.pyramid_reduce(rgb, downscale=4.0, order = 3)
     rgb = ski.img_as_ubyte(rgb)
     #rgb = rgb.astype(np.uint8)
     print (rgb)
-    ski.io.imsave('./rgb_pyrReduce_img.png', rgb)
+    ski.io.imsave(filtered_path + '/rgb_pyrReduce_img.png', rgb)
 
     exit()
 
     #gt_path = './aachen_000015_000019.pickle'
-    gt_path = 'aachen_000015_000019.pickle'
+    gt_path = filtered_path + 'aachen_000015_000019.pickle'
     with open(gt_path, 'rb') as f:
         gt_data = pickle.load(f)
     gt_ids = gt_data[0]
@@ -117,7 +121,7 @@ def main(argv):
     #gt_ids = ski.transform.resize(gt_ids, (FLAGS.img_height, FLAGS.img_width), order=0, preserve_range=True).astype(np.uint8)
     gt_ids = nearest_neighbor(gt_ids).astype(np.uint8)
     print(np.shape(gt_ids))
-    ski.io.imsave('./gt_closestNeighbor.png', gt_ids)
+    ski.io.imsave(filtered_path + '/gt_closestNeighbor.png', gt_ids)
     #ski.io.imsave('./gt_img.png', gt_ids)
     '''gt_weights = np.zeros((FLAGS.img_height, FLAGS.img_width), np.float32)
     for i, wgt in enumerate(class_weights):
