@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/python3
 
 import os
 import argparse
@@ -13,10 +13,10 @@ from tqdm import trange
 parser = argparse.ArgumentParser(description="Prepare downsampled dataset")
 parser.add_argument('input_dir')
 parser.add_argument('output_dir')
-parser.parse_args()
+arguments = parser.parse_args()
 
-input_dir = parser['input_dir']
-output_dir = parser['output_dir']
+input_dir = arguments.input_dir
+output_dir = arguments.output_dir
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -88,8 +88,9 @@ def create_tfrecord(rgb, label_map, weight_map, depth_img, num_labels,
 def prepare_dataset(name):
     print('Preparing ' + name)
 
-    root_dir = FLAGS.data_dir + '/rgb/' + name + '/'
-    depth_dir = os.path.join(FLAGS.data_dir, 'depth', name)
+    root_dir = FLAGS.data_dir + name + '/'
+    # depth_dir = os.path.join(FLAGS.data_dir, 'depth', name)
+    depth_dir = os.path.join(FLAGS.data_dir, name)
     print(depth_dir)
 
     gt_dir = FLAGS.data_dir + '/gt_data/' + name + '/'
@@ -103,7 +104,9 @@ def prepare_dataset(name):
     cy_start = FLAGS.cy_start
     cy_end = FLAGS.cy_end
     img_cnt = 0
-    depth_sum = np.zeros((FLAGS.img_height, FLAGS.img_width))
+
+    # beware, 3 was missing. Check why
+    depth_sum = np.zeros((FLAGS.img_height, FLAGS.img_width, 3))
 
     for city in cities:
         print(city)
@@ -120,12 +123,15 @@ def prepare_dataset(name):
                 rgb, (FLAGS.img_height, FLAGS.img_width),
                 preserve_range=True,
                 order=3)
+
             rgb = rgb.astype(np.uint8)
             depth_path = os.path.join(depth_dir, city,
-                                      img_name[:-4] + '_leftImg8bit.png')
+                                      img_name[:-4] + '.png')
+
             depth_img = ski.data.load(depth_path)
             depth_img = np.ascontiguousarray(
                 depth_img[cy_start:cy_end, cx_start:cx_end])
+
             depth_img = ski.transform.resize(
                 depth_img, (FLAGS.img_height, FLAGS.img_width),
                 order=0,

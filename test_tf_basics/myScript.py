@@ -23,37 +23,30 @@ tf.app.flags.DEFINE_integer('img_height', 256, '')
 
 
 def create_tfrecord(rgb, label_map, weight_map, depth_img, num_labels, img_name, save_dir):
+    # rows = rgb.shape[0]
+    # cols = rgb.shape[1]
+    # depth = rgb.shape[2]
+    filename = os.path.join(save_dir + img_name + '.tfrecords')
+    writer = tf.python_io.TFRecordWriter(filename)
+    rgb_str = rgb.tostring()
+    labels_str = label_map.tostring()
+    weights_str = weight_map.tostring()
+    # disp_raw = depth_img.tostring()
 
-  #rows = rgb.shape[0]
+    example = tf.train.Example(features=tf.train.Features(feature={
+        'height': _int64_feature(rows),
+        'width': _int64_feature(cols),
+        'depth': _int64_feature(depth),
+        'num_labels': _int64_feature(int(num_labels)),
+        'img_name': _bytes_feature(img_name.encode()),
+        'rgb': _bytes_feature(rgb_str),
+        'label_weights': _bytes_feature(weights_str),
+        'labels': _bytes_feature(labels_str)})
+    )
 
-  #cols = rgb.shape[1]
+    writer.write(example.SerializeToString())
 
-  #depth = rgb.shape[2]
-
-
-
-  filename = os.path.join(save_dir + img_name + '.tfrecords')
-  writer = tf.python_io.TFRecordWriter(filename)
-  rgb_str = rgb.tostring()
-  labels_str = label_map.tostring()
-  weights_str = weight_map.tostring()
-  #disp_raw = depth_img.tostring()
-
-  example = tf.train.Example(features=tf.train.Features(feature={
-      'height': _int64_feature(rows),
-      'width': _int64_feature(cols),
-      'depth': _int64_feature(depth),
-      'num_labels': _int64_feature(int(num_labels)),
-      'img_name': _bytes_feature(img_name.encode()),
-      'rgb': _bytes_feature(rgb_str),
-      'label_weights': _bytes_feature(weights_str),
-      'labels': _bytes_feature(labels_str)})
-)
-      #'disparity': _bytes_feature(disp_raw)}))
-
-  writer.write(example.SerializeToString())
-
-  writer.close()
+    writer.close()
 
 
 def resizeMostCommonClass(gt_ids, downscale = 2):
@@ -67,12 +60,9 @@ def resizeMostCommonClass(gt_ids, downscale = 2):
     myNp = np.reshape(myNp, (FLAGS.img_height, FLAGS.img_width)).astype(np.uint8)
     return myNp
 
-    #import pdb
-    #pdb.set_trace()
 
 def nearest_neighbor(gt_ids):
     return imresize(gt_ids, size=( FLAGS.img_height, FLAGS.img_width), interp='nearest')
-
 
 
 def main(argv):
