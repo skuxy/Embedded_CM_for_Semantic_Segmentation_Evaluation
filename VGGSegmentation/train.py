@@ -111,8 +111,7 @@ def train(model, resume_path=None):
             dataset_partition='val')
 
         with tf.variable_scope('model'):
-            #logits, loss, init_op, init_feed = model.build(train_data, train_labels, train_weights)
-            logits, loss = model.build(train_data, train_labels, train_weights)
+            logits, loss, init_op, init_feed = model.build(train_data, train_labels, train_weights)
 
         with tf.variable_scope('model', reuse=True):
             logits_val, loss_val = model.build(
@@ -142,8 +141,7 @@ def train(model, resume_path=None):
         variables_averages_op = variable_averages.apply(
             tf.trainable_variables())
 
-        with tf.control_dependencies(
-            [apply_gradient_op, variables_averages_op]):
+        with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
             train_op = tf.no_op(name='train')
 
         saver = tf.train.Saver(
@@ -159,7 +157,6 @@ def train(model, resume_path=None):
             sess.run(tf.initialize_local_variables())
             sess.run(init_op, feed_dict=init_feed)
 
-        #return
         summary_op = tf.summary.merge_all()
 
         coord = tf.train.Coordinator()
@@ -302,7 +299,13 @@ def train(model, resume_path=None):
 
 
 def main(argv=None):
-    model = helper.import_module('model', FLAGS.model_path)
+    if len(argv) > 1:
+        if argv[1] == 'vgg16':
+            model = helper.import_module(argv[1], FLAGS.vgg16_model_path)
+        elif argv[1] == 'vgg19':
+            model = helper.import_module(argv[1], FLAGS.vgg19_model_path)
+    else:
+        model = helper.import_module('model', FLAGS.vgg16_model_path)
 
     if tf.gfile.Exists(FLAGS.train_dir):
         raise ValueError('Train dir exists: ' + FLAGS.train_dir)

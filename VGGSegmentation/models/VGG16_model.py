@@ -21,11 +21,15 @@ def total_loss_sum(losses):
 def create_init_op(vgg_layers):
     variables = tf.contrib.framework.get_variables()
     init_map = {}
+
     for var in variables:
         name_split = var.name.split('/')
+
         if len(name_split) != 3:
             continue
+
         name = name_split[1] + '/' + name_split[2][:-2]
+
         if name in vgg_layers:
             print(var.name, ' --> init from ', name)
             init_map[var.name] = vgg_layers[name]
@@ -37,6 +41,7 @@ def create_init_op(vgg_layers):
     return init_op, init_feed
 
 
+# is this thing ever used? Nope
 def pyramid_pooling_layer(net):
     sd = net.get_shape()[1:3]
     sd1 = [sd[0].value, sd[1].value]
