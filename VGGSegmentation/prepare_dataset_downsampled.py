@@ -10,7 +10,6 @@ import skimage.data
 import skimage.transform
 from tqdm import trange
 
-
 parser = argparse.ArgumentParser(description="Prepare downsampled dataset")
 parser.add_argument('input_dir')
 parser.add_argument('output_dir')
@@ -21,8 +20,7 @@ output_dir = parser['output_dir']
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('data_dir',
-                           input_dir, 'Dataset dir')
+tf.app.flags.DEFINE_string('data_dir', input_dir, 'Dataset dir')
 
 # tf.app.flags.DEFINE_integer('img_width', 640, '')
 # tf.app.flags.DEFINE_integer('img_height', 288, '')
@@ -33,8 +31,10 @@ tf.app.flags.DEFINE_integer('img_height', 144, '')
 # tf.app.flags.DEFINE_integer('img_width', 1024, '')
 # tf.app.flags.DEFINE_integer('img_height', 448, '')
 
-tf.app.flags.DEFINE_string('save_dir', output_dir + '/'
-                           + '{}x{}'.format(FLAGS.img_width, FLAGS.img_height) + '/', '')
+tf.app.flags.DEFINE_string(
+    'save_dir',
+    output_dir + '/' + '{}x{}'.format(FLAGS.img_width, FLAGS.img_height) + '/',
+    '')
 
 # leave out the car hood
 tf.app.flags.DEFINE_integer('cx_start', 0, '')
@@ -55,7 +55,8 @@ def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
-def create_tfrecord(rgb, label_map, weight_map, depth_img, num_labels, img_name, save_dir):
+def create_tfrecord(rgb, label_map, weight_map, depth_img, num_labels,
+                    img_name, save_dir):
     rows = rgb.shape[0]
     cols = rgb.shape[1]
     depth = rgb.shape[2]
@@ -67,15 +68,18 @@ def create_tfrecord(rgb, label_map, weight_map, depth_img, num_labels, img_name,
     weights_str = weight_map.tostring()
     # disp_raw = depth_img.tostring()
 
-    example = tf.train.Example(features=tf.train.Features(feature={
-        'height': _int64_feature(rows),
-        'width': _int64_feature(cols),
-        'depth': _int64_feature(depth),
-        'num_labels': _int64_feature(int(num_labels)),
-        'img_name': _bytes_feature(img_name.encode()),
-        'rgb': _bytes_feature(rgb_str),
-        'label_weights': _bytes_feature(weights_str),
-        'labels': _bytes_feature(labels_str)}))
+    example = tf.train.Example(
+        features=tf.train.Features(
+            feature={
+                'height': _int64_feature(rows),
+                'width': _int64_feature(cols),
+                'depth': _int64_feature(depth),
+                'num_labels': _int64_feature(int(num_labels)),
+                'img_name': _bytes_feature(img_name.encode()),
+                'rgb': _bytes_feature(rgb_str),
+                'label_weights': _bytes_feature(weights_str),
+                'labels': _bytes_feature(labels_str)
+            }))
     # 'disparity': _bytes_feature(disp_raw)}))
     writer.write(example.serializetostring())
     writer.close()
@@ -110,15 +114,22 @@ def prepare_dataset(name):
             img_prefix = img_name[:-4]
             rgb_path = root_dir + city + '/' + img_name
             rgb = ski.data.load(rgb_path)
-            rgb = np.ascontiguousarray(rgb[cy_start:cy_end, cx_start:cx_end, :])
+            rgb = np.ascontiguousarray(
+                rgb[cy_start:cy_end, cx_start:cx_end, :])
             rgb = ski.transform.resize(
-                rgb, (FLAGS.img_height, FLAGS.img_width), preserve_range=True, order=3)
+                rgb, (FLAGS.img_height, FLAGS.img_width),
+                preserve_range=True,
+                order=3)
             rgb = rgb.astype(np.uint8)
-            depth_path = os.path.join(depth_dir, city, img_name[:-4] + '_leftImg8bit.png')
+            depth_path = os.path.join(depth_dir, city,
+                                      img_name[:-4] + '_leftImg8bit.png')
             depth_img = ski.data.load(depth_path)
-            depth_img = np.ascontiguousarray(depth_img[cy_start:cy_end, cx_start:cx_end])
-            depth_img = ski.transform.resize(depth_img, (FLAGS.img_height, FLAGS.img_width),
-                                             order=0, preserve_range=True)
+            depth_img = np.ascontiguousarray(
+                depth_img[cy_start:cy_end, cx_start:cx_end])
+            depth_img = ski.transform.resize(
+                depth_img, (FLAGS.img_height, FLAGS.img_width),
+                order=0,
+                preserve_range=True)
             depth_img = np.round(depth_img / 256.0).astype(np.uint8)
             depth_sum += depth_img
             print((depth_sum / img_cnt).mean((0, 1)))
@@ -133,8 +144,10 @@ def prepare_dataset(name):
         class_weights = gt_data[4]
         assert num_labels == (gt_ids < 255).sum()
         gt_ids = np.ascontiguousarray(gt_ids[cy_start:cy_end, cx_start:cx_end])
-        gt_ids = ski.transform.resize(gt_ids, (FLAGS.img_height, FLAGS.img_width),
-                                      order=0, preserve_range=True).astype(np.uint8)
+        gt_ids = ski.transform.resize(
+            gt_ids, (FLAGS.img_height, FLAGS.img_width),
+            order=0,
+            preserve_range=True).astype(np.uint8)
         # ski.io.imsave(save_dir + img_name, gt_ids)
         gt_ids = gt_ids.astype(np.int8)
         gt_weights = np.zeros((FLAGS.img_height, FLAGS.img_width), np.float32)
@@ -149,7 +162,8 @@ def prepare_dataset(name):
     num_labels = (gt_ids >= 0).sum()
 
     # convert_colors_to_indices(gt_rgb, class_color_map)
-    create_tfrecord(rgb, gt_ids, gt_weights, depth_img, num_labels, img_prefix, save_dir)
+    create_tfrecord(rgb, gt_ids, gt_weights, depth_img, num_labels, img_prefix,
+                    save_dir)
 
 
 def main(argv):

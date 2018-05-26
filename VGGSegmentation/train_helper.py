@@ -34,7 +34,8 @@ class Logger(object):
 
 def print_grad_stats(grads, grad_tensors):
     # for grad in grads:
-    for i, (grad, tensor) in enumerate(zip(reversed(grads), reversed(grad_tensors))):
+    for i, (grad, tensor) in enumerate(
+            zip(reversed(grads), reversed(grad_tensors))):
         if i == 20: break
         name = tensor.name
         print('[{}]'.format(i), name)
@@ -118,5 +119,3 @@ def put_kernels_on_grid(kernel, grid_Y, grid_X, pad=1):
     x8 = (x7 - x_min) / (x_max - x_min)
 
     return x8
-
-

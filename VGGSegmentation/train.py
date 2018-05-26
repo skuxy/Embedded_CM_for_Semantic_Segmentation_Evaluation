@@ -4,7 +4,6 @@ import train_helper
 import time
 import os
 
-
 import eval_helper
 import numpy as np
 
@@ -14,30 +13,37 @@ import sys
 
 from shutil import copyfile
 
-tf.app.flags.DEFINE_string('config_path', "config/cityscapes.py", """Path to experiment config.""")
+tf.app.flags.DEFINE_string('config_path', "config/cityscapes.py",
+                           """Path to experiment config.""")
 FLAGS = tf.app.flags.FLAGS
 
 helper.import_module('config', FLAGS.config_path)
 print(FLAGS.__dict__['__flags'].keys())
 
+class_names = [
+    'road', 'sidewalk', 'building', 'wall', 'fence', 'pole', 'traffic light',
+    'traffic sign', 'vegetation', 'terrain', 'sky', 'person', 'rider', 'car',
+    'truck', 'bus', 'train', 'motorcycle', 'bicycle'
+]
 
-
-class_names=['road','sidewalk','building','wall','fence','pole','traffic light','traffic sign','vegetation',
-             'terrain','sky','person','rider','car','truck','bus','train','motorcycle','bicycle']
 
 def collect_confusion(logits, labels, conf_mat):
     predicted_labels = logits.argmax(3).astype(np.int32, copy=False)
 
     num_examples = FLAGS.batch_size * FLAGS.img_height * FLAGS.img_width
-    predicted_labels = np.resize(predicted_labels, [num_examples, ])
-    batch_labels = np.resize(labels, [num_examples, ])
+    predicted_labels = np.resize(predicted_labels, [
+        num_examples,
+    ])
+    batch_labels = np.resize(labels, [
+        num_examples,
+    ])
 
     assert predicted_labels.dtype == batch_labels.dtype
-    eval_helper.collect_confusion_matrix(predicted_labels, batch_labels, conf_mat, FLAGS.num_classes)
+    eval_helper.collect_confusion_matrix(predicted_labels, batch_labels,
+                                         conf_mat, FLAGS.num_classes)
 
 
-
-def evaluate(sess, epoch_num, labels, logits, loss, data_size,name):
+def evaluate(sess, epoch_num, labels, logits, loss, data_size, name):
     print('\nTest performance:')
     loss_avg = 0
 
@@ -45,67 +51,72 @@ def evaluate(sess, epoch_num, labels, logits, loss, data_size,name):
     print('testsize = ', data_size)
     assert data_size % batch_size == 0
     num_batches = data_size // batch_size
-    start_time=time.time()
+    start_time = time.time()
 
-    conf_mat = np.zeros((FLAGS.num_classes, FLAGS.num_classes), dtype=np.uint64)
-    for step in range(1,num_batches+1):
-        if(step%5==0):
-            print('evaluation: batch %d / %d '%(step,num_batches))
+    conf_mat = np.zeros(
+        (FLAGS.num_classes, FLAGS.num_classes), dtype=np.uint64)
+    for step in range(1, num_batches + 1):
+        if (step % 5 == 0):
+            print('evaluation: batch %d / %d ' % (step, num_batches))
 
         out_logits, loss_value, batch_labels = sess.run([logits, loss, labels])
 
         loss_avg += loss_value
-        collect_confusion(out_logits,batch_labels,conf_mat)
+        collect_confusion(out_logits, batch_labels, conf_mat)
 
-
-    print('Evaluation {} in epoch {} lasted {}'.format(name,epoch_num,train_helper.get_expired_time(start_time)))
+    print('Evaluation {} in epoch {} lasted {}'.format(
+        name, epoch_num, train_helper.get_expired_time(start_time)))
 
     print('')
 
-    (acc, iou, prec, rec, _) = eval_helper.compute_errors(conf_mat,name,class_names,verbose=True)
-    loss_avg /= num_batches;
+    (acc, iou, prec, rec, _) = eval_helper.compute_errors(
+        conf_mat, name, class_names, verbose=True)
+    loss_avg /= num_batches
 
-    print('IoU=%.2f Acc=%.2f Prec=%.2f Rec=%.2f' % (iou,acc, prec, rec))
-    return acc,iou, prec, rec, loss_avg
+    print('IoU=%.2f Acc=%.2f Prec=%.2f Rec=%.2f' % (iou, acc, prec, rec))
+    return acc, iou, prec, rec, loss_avg
 
 
 def train(model, resume_path=None):
     with tf.Graph().as_default():
         # configure the training session
-        config = tf.ConfigProto(allow_soft_placement=True,
-                                log_device_placement=FLAGS.log_device_placement)
+        config = tf.ConfigProto(
+            allow_soft_placement=True,
+            log_device_placement=FLAGS.log_device_placement)
         sess = tf.Session(config=config)
 
-        global_step = tf.get_variable('global_step', [],
-                                      initializer=tf.constant_initializer(0),
-                                      trainable=False)
-        num_batches_per_epoch = (FLAGS.train_size //
-                                 FLAGS.batch_size)
+        global_step = tf.get_variable(
+            'global_step', [],
+            initializer=tf.constant_initializer(0),
+            trainable=False)
+        num_batches_per_epoch = (FLAGS.train_size // FLAGS.batch_size)
         decay_steps = int(num_batches_per_epoch * FLAGS.num_epochs_per_decay)
 
         # Decay the learning rate exponentially based on the number of steps.
-        lr = tf.train.exponential_decay(FLAGS.initial_learning_rate,
-                                        global_step,
-                                        decay_steps,
-                                        FLAGS.learning_rate_decay_factor,
-                                        staircase=True)
+        lr = tf.train.exponential_decay(
+            FLAGS.initial_learning_rate,
+            global_step,
+            decay_steps,
+            FLAGS.learning_rate_decay_factor,
+            staircase=True)
 
-        train_data, train_labels, train_names, train_weights = reader.inputs(shuffle=True,
-                                                                             num_epochs=FLAGS.max_epochs,
-                                                                             dataset_partition='train')
+        train_data, train_labels, train_names, train_weights = reader.inputs(
+            shuffle=True,
+            num_epochs=FLAGS.max_epochs,
+            dataset_partition='train')
 
-
-        val_data, val_labels, val_names, val_weights = reader.inputs(shuffle=False,
-                                                                     num_epochs=FLAGS.max_epochs,
-                                                                     dataset_partition='val')
-
+        val_data, val_labels, val_names, val_weights = reader.inputs(
+            shuffle=False,
+            num_epochs=FLAGS.max_epochs,
+            dataset_partition='val')
 
         with tf.variable_scope('model'):
             #logits, loss, init_op, init_feed = model.build(train_data, train_labels, train_weights)
             logits, loss = model.build(train_data, train_labels, train_weights)
 
         with tf.variable_scope('model', reuse=True):
-            logits_val, loss_val = model.build(val_data, val_labels, val_weights, is_training=False)
+            logits_val, loss_val = model.build(
+                val_data, val_labels, val_weights, is_training=False)
 
         tf.summary.scalar('learning_rate', lr)
 
@@ -126,15 +137,17 @@ def train(model, resume_path=None):
             if grad is not None:
                 tf.summary.histogram(var.op.name + '/gradients', grad)
 
-        variable_averages = tf.train.ExponentialMovingAverage(FLAGS.moving_average_decay, global_step)
-        variables_averages_op = variable_averages.apply(tf.trainable_variables())
+        variable_averages = tf.train.ExponentialMovingAverage(
+            FLAGS.moving_average_decay, global_step)
+        variables_averages_op = variable_averages.apply(
+            tf.trainable_variables())
 
-        with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
+        with tf.control_dependencies(
+            [apply_gradient_op, variables_averages_op]):
             train_op = tf.no_op(name='train')
 
-        saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.max_epochs,sharded=False)
-
-
+        saver = tf.train.Saver(
+            tf.global_variables(), max_to_keep=FLAGS.max_epochs, sharded=False)
 
         if len(FLAGS.resume_path) > 0:
             print('\nRestoring params from:', FLAGS.resume_path)
@@ -146,23 +159,22 @@ def train(model, resume_path=None):
             sess.run(tf.initialize_local_variables())
             sess.run(init_op, feed_dict=init_feed)
 
-
-
         #return
         summary_op = tf.summary.merge_all()
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
-        summary_writer = tf.summary.FileWriter(FLAGS.train_dir, graph=sess.graph)
+        summary_writer = tf.summary.FileWriter(
+            FLAGS.train_dir, graph=sess.graph)
 
         num_batches = FLAGS.train_size // FLAGS.batch_size
 
         plot_data = {}
         plot_data['train_loss'] = []
         plot_data['valid_loss'] = []
-        plot_data['train_iou']=[]
-        plot_data['valid_iou']=[]
+        plot_data['train_iou'] = []
+        plot_data['valid_iou'] = []
         plot_data['train_acc'] = []
         plot_data['valid_acc'] = []
         plot_data['train_prec'] = []
@@ -180,10 +192,10 @@ def train(model, resume_path=None):
         for epoch_num in range(1, FLAGS.max_epochs + 1):
             print('\ntensorboard --logdir=' + FLAGS.train_dir + '\n')
 
-            confusion_matrix = np.zeros((FLAGS.num_classes, FLAGS.num_classes), dtype=np.uint64)
+            confusion_matrix = np.zeros(
+                (FLAGS.num_classes, FLAGS.num_classes), dtype=np.uint64)
 
             avg_train_loss = 0
-
 
             for step in range(1, num_batches + 1):
 
@@ -193,21 +205,24 @@ def train(model, resume_path=None):
                 if global_step_value % 50 == 0:
                     run_ops += [summary_op]
                     ret_val = sess.run(run_ops)
-                    (_, logits_value, loss_value, global_step_value, batch_labels, summary_str) = ret_val
+                    (_, logits_value, loss_value, global_step_value,
+                     batch_labels, summary_str) = ret_val
                     summary_writer.add_summary(summary_str, global_step_value)
                 else:
                     ret_val = sess.run(run_ops)
-                    (_, logits_value, loss_value, global_step_value, batch_labels) = ret_val
+                    (_, logits_value, loss_value, global_step_value,
+                     batch_labels) = ret_val
 
                 duration = time.time() - start_time
                 avg_train_loss += loss_value
 
-                if step>=num_batches*4//5:
-                    collect_confusion(logits_value,batch_labels,confusion_matrix)
-                    acc,iou,rec,prec,size=eval_helper.compute_errors(confusion_matrix,'train',class_names,verbose=False)
+                if step >= num_batches * 4 // 5:
+                    collect_confusion(logits_value, batch_labels,
+                                      confusion_matrix)
+                    acc, iou, rec, prec, size = eval_helper.compute_errors(
+                        confusion_matrix, 'train', class_names, verbose=False)
 
-
-                    if step  % 5 == 0:
+                    if step % 5 == 0:
                         num_examples_per_step = FLAGS.batch_size
                         examples_per_sec = num_examples_per_step / duration
                         sec_per_batch = float(duration)
@@ -221,19 +236,14 @@ def train(model, resume_path=None):
                                      'avg rec=%.2f\n \
                                 (%.1f examples/sec; %.3f sec/batch)'
 
-                        print(format_str % (train_helper.get_expired_time(ex_start_time),
-                                            epoch_num,
-                                            step, num_batches + 1,
-                                            loss_value,
-                                            avg_train_loss / step,
-                                            acc,
-                                            iou,
-                                            prec,
-                                            rec,
-                                            examples_per_sec, sec_per_batch))
+                        print(format_str %
+                              (train_helper.get_expired_time(ex_start_time),
+                               epoch_num, step, num_batches + 1, loss_value,
+                               avg_train_loss / step, acc, iou, prec, rec,
+                               examples_per_sec, sec_per_batch))
 
                 else:
-                    if step%5==0:
+                    if step % 5 == 0:
                         num_examples_per_step = FLAGS.batch_size
                         examples_per_sec = num_examples_per_step / duration
                         sec_per_batch = float(duration)
@@ -243,26 +253,28 @@ def train(model, resume_path=None):
                                      'avg loss = %.2f\n \
                                    (%.1f examples/sec; %.3f sec/batch)'
 
-                        print(format_str % (train_helper.get_expired_time(ex_start_time),
-                                            epoch_num,
-                                            step, num_batches + 1,
-                                            loss_value,
-                                            avg_train_loss / step,
-
-                                            examples_per_sec, sec_per_batch))
-
-
+                        print(format_str %
+                              (train_helper.get_expired_time(ex_start_time),
+                               epoch_num, step, num_batches + 1, loss_value,
+                               avg_train_loss / step, examples_per_sec,
+                               sec_per_batch))
 
             train_loss = avg_train_loss / num_batches
 
-            valid_acc,valid_iou, valid_prec, valid_rec, valid_loss = evaluate(sess, epoch_num, val_labels, logits_val, loss_val,
-                                                                    data_size=FLAGS.val_size,name='validation')
+            valid_acc, valid_iou, valid_prec, valid_rec, valid_loss = evaluate(
+                sess,
+                epoch_num,
+                val_labels,
+                logits_val,
+                loss_val,
+                data_size=FLAGS.val_size,
+                name='validation')
 
             plot_data['train_loss'] += [train_loss]
             plot_data['valid_loss'] += [valid_loss]
 
-            plot_data['train_iou']+=[iou]
-            plot_data['valid_iou']+=[valid_iou]
+            plot_data['train_iou'] += [iou]
+            plot_data['valid_iou'] += [valid_iou]
 
             plot_data['train_acc'] += [acc]
             plot_data['valid_acc'] += [valid_acc]
@@ -278,12 +290,11 @@ def train(model, resume_path=None):
 
             if valid_iou >= max(plot_data['valid_iou']):
                 print('Saving model...')
-                t=time.time()
+                t = time.time()
                 checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
                 saver.save(sess, checkpoint_path)
-                print('Model is saved! t={}'.format(train_helper.get_expired_time(t)))
-
-
+                print('Model is saved! t={}'.format(
+                    train_helper.get_expired_time(t)))
 
         coord.request_stop()
         coord.join(threads)

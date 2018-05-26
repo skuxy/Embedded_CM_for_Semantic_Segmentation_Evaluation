@@ -2,7 +2,6 @@ import tensorflow as tf
 import tensorflow.contrib.layers as layers
 from model_helper import read_vgg_init
 
-
 import losses
 
 FLAGS = tf.app.flags.FLAGS
@@ -11,7 +10,8 @@ FLAGS = tf.app.flags.FLAGS
 def total_loss_sum(losses):
     # Assemble all of the losses for the current tower only.
     # Calculate the total loss for the current tower.
-    regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+    regularization_losses = tf.get_collection(
+        tf.GraphKeys.REGULARIZATION_LOSSES)
     total_loss = tf.add_n(losses + regularization_losses, name='total_loss')
     return total_loss
 
@@ -27,11 +27,9 @@ def create_init_op(vgg_layers):
         if name in vgg_layers:
             print(var.name, ' --> init from ', name)
             init_map[var.name] = vgg_layers[name]
-            print(var.name,vgg_layers[name].shape)
+            print(var.name, vgg_layers[name].shape)
         else:
             print(var.name, ' --> random init')
-
-
 
     init_op, init_feed = tf.contrib.framework.assign_from_values(init_map)
     return init_op, init_feed
@@ -40,7 +38,6 @@ def create_init_op(vgg_layers):
 def build(inputs, labels, weights, is_training=True):
 
     vgg_layers, vgg_layer_names = read_vgg_init(FLAGS.vgg_init_dir)
-
 
     weight_decay = 5e-4
     bn_params = {
@@ -54,12 +51,18 @@ def build(inputs, labels, weights, is_training=True):
         'updates_collections': None,
         'is_training': is_training,
     }
-    with tf.contrib.framework.arg_scope([layers.convolution2d],
-                                        kernel_size=3, stride=1, padding='SAME', rate=1, activation_fn=tf.nn.relu,
-                                        # normalizer_fn=layers.batch_norm, normalizer_params=bn_params,
-                                        # weights_initializer=layers.variance_scaling_initializer(),
-                                        normalizer_fn=None, weights_initializer=None,
-                                        weights_regularizer=layers.l2_regularizer(weight_decay)):
+    with tf.contrib.framework.arg_scope(
+        [layers.convolution2d],
+            kernel_size=3,
+            stride=1,
+            padding='SAME',
+            rate=1,
+            activation_fn=tf.nn.relu,
+            # normalizer_fn=layers.batch_norm, normalizer_params=bn_params,
+            # weights_initializer=layers.variance_scaling_initializer(),
+            normalizer_fn=None,
+            weights_initializer=None,
+            weights_regularizer=layers.l2_regularizer(weight_decay)):
         net = layers.convolution2d(inputs, 64, scope='conv1_1')
         net = layers.convolution2d(net, 64, scope='conv1_2')
         net = layers.max_pool2d(net, 2, 2, scope='pool1')
@@ -74,49 +77,49 @@ def build(inputs, labels, weights, is_training=True):
         net = layers.convolution2d(net, 512, scope='conv4_2')
         net = layers.convolution2d(net, 512, scope='conv4_3')
 
-        net = layers.convolution2d(net, 512, scope='conv5_1',rate=2)
-        net = layers.convolution2d(net, 512, scope='conv5_2',rate=2)
-        net = layers.convolution2d(net, 512, scope='conv5_3',rate=2)
+        net = layers.convolution2d(net, 512, scope='conv5_1', rate=2)
+        net = layers.convolution2d(net, 512, scope='conv5_2', rate=2)
+        net = layers.convolution2d(net, 512, scope='conv5_3', rate=2)
 
+    with tf.contrib.framework.arg_scope(
+        [layers.convolution2d],
+            stride=1,
+            padding='SAME',
+            weights_initializer=layers.variance_scaling_initializer(),
+            activation_fn=tf.nn.relu,
+            normalizer_fn=layers.batch_norm,
+            normalizer_params=bn_params,
+            weights_regularizer=layers.l2_regularizer(FLAGS.weight_decay)):
+        net = layers.convolution2d(
+            net, 512, kernel_size=7, scope='conv6_1', rate=4)
+        net = layers.convolution2d(
+            net, 512, kernel_size=3, scope='conv6_2', rate=8)
 
+    logits = layers.convolution2d(
+        net,
+        FLAGS.num_classes,
+        1,
+        padding='SAME',
+        activation_fn=None,
+        scope='unary_2',
+        rate=2)
+    print('logits', logits.get_shape())
 
+    logits = tf.image.resize_bilinear(
+        logits, [FLAGS.img_height, FLAGS.img_width], name='resize_score')
 
-
-
-
-    with tf.contrib.framework.arg_scope([layers.convolution2d],stride=1,padding='SAME',
-                                        weights_initializer=layers.variance_scaling_initializer(),
-                                        activation_fn=tf.nn.relu,normalizer_fn=layers.batch_norm,
-                                        normalizer_params=bn_params,
-                                        weights_regularizer=layers.l2_regularizer(FLAGS.weight_decay)):
-        net = layers.convolution2d(net, 512, kernel_size=7, scope='conv6_1',rate=4)
-        net = layers.convolution2d(net, 512, kernel_size=3, scope='conv6_2',rate=8)
-
-
-    logits = layers.convolution2d(net, FLAGS.num_classes, 1,padding='SAME', activation_fn=None,scope='unary_2',rate=2)
-    print('logits',logits.get_shape())
-
-    logits=tf.image.resize_bilinear(logits,[FLAGS.img_height,FLAGS.img_width],name='resize_score')
-
-
-
-
-    loss=get_loss(logits,labels,weights,is_training=is_training)
-
-
+    loss = get_loss(logits, labels, weights, is_training=is_training)
 
     if is_training:
         init_op, init_feed = create_init_op(vgg_layers)
         return logits, loss, init_op, init_feed
 
-    return logits,loss
+    return logits, loss
 
 
-
-
-def get_loss(logits, labels,weights, is_training):
+def get_loss(logits, labels, weights, is_training):
     #xent_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, labels))
-    xent_loss=losses.weighted_cross_entropy_loss(logits,labels,weights)
+    xent_loss = losses.weighted_cross_entropy_loss(logits, labels, weights)
     total_loss = total_loss_sum([xent_loss])
     if is_training:
         loss_averages_op = losses.add_loss_summaries(total_loss)
