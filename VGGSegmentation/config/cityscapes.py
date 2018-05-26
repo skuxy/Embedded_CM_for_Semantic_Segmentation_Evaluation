@@ -4,13 +4,16 @@ import os
 
 flags = tf.app.flags
 
-SAVE_DIR = os.path.join('/home/stjepan/FAKS/zavrad/samo_test/',
+SAVE_DIR = os.path.join('/run/media/skux/external',
                         train_helper.get_time_string())
 
 flags.DEFINE_string('train_dir', SAVE_DIR, 'new folder to save outputs')
 
-flags.DEFINE_string('model_path', 'models/model.py',
-                    'path to model definition')
+flags.DEFINE_string('vgg16_model_path', 'models/VGG16.py',
+                    'path to vgg16 model definition')
+
+flags.DEFINE_string('vgg19_model_path', 'models/VGG16.py',
+                    'path to vgg19 model definition')
 
 # used in prepare_tfrecords
 flags.DEFINE_string(
