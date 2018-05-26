@@ -1,3 +1,5 @@
+import time
+
 import tensorflow as tf
 import tensorflow.contrib.layers as layers
 from model_helper import read_vgg_init
@@ -90,6 +92,9 @@ def build(inputs, labels, weights, is_training=True):
         'updates_collections': None,
         'is_training': is_training,
     }
+
+    start_time = time.time()
+
     with tf.contrib.framework.arg_scope(
         [layers.convolution2d],
             kernel_size=3,
@@ -102,6 +107,7 @@ def build(inputs, labels, weights, is_training=True):
             normalizer_fn=None,
             weights_initializer=None,
             weights_regularizer=layers.l2_regularizer(weight_decay)):
+
         net = layers.convolution2d(inputs, 64, scope='conv1_1')
         net = layers.convolution2d(net, 64, scope='conv1_2')
         net = layers.max_pool2d(net, 2, 2, scope='pool1')
@@ -148,13 +154,17 @@ def build(inputs, labels, weights, is_training=True):
         padding='SAME',
         activation_fn=None,
         scope='unary_2',
-        rate=2)
+        rate=2
+    )
+
     print('logits', logits.get_shape())
 
     logits = tf.image.resize_bilinear(
         logits, [FLAGS.img_height, FLAGS.img_width], name='resize_score')
 
     loss = get_loss(logits, labels, weights, is_training=is_training)
+
+    print(("build model finished in: %ds" % (time.time() - start_time)))
 
     if is_training:
         init_op, init_feed = create_init_op(vgg_layers)
@@ -164,9 +174,10 @@ def build(inputs, labels, weights, is_training=True):
 
 
 def get_loss(logits, labels, weights, is_training):
-    #xent_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, labels))
+    # xent_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, labels))
     xent_loss = losses.weighted_cross_entropy_loss(logits, labels, weights)
     total_loss = total_loss_sum([xent_loss])
+
     if is_training:
         loss_averages_op = losses.add_loss_summaries(total_loss)
         with tf.control_dependencies([loss_averages_op]):
