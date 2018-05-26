@@ -119,6 +119,7 @@ def build(inputs, labels, weights, is_training=True):
         net = layers.convolution2d(net, 256, scope='conv3_1')
         net = layers.convolution2d(net, 256, scope='conv3_2')
         net = layers.convolution2d(net, 256, scope='conv3_3')
+        net = layers.convolution2d(net, 256, scope='conv3_4')
 
         paddings = [[0, 0], [0, 0]]
         crops = [[0, 0], [0, 0]]
@@ -128,6 +129,7 @@ def build(inputs, labels, weights, is_training=True):
         net = layers.convolution2d(net, 512, scope='conv4_1')
         net = layers.convolution2d(net, 512, scope='conv4_2')
         net = layers.convolution2d(net, 512, scope='conv4_3')
+        net = layers.convolution2d(net, 512, scope='conv4_4')
         net = tf.batch_to_space(net, crops=crops, block_size=block_size)
 
         block_size = 4
@@ -135,6 +137,7 @@ def build(inputs, labels, weights, is_training=True):
         net = layers.convolution2d(net, 512, scope='conv5_1')
         net = layers.convolution2d(net, 512, scope='conv5_2')
         net = layers.convolution2d(net, 512, scope='conv5_3')
+        net = layers.convolution2d(net, 512, scope='conv5_4')
         net = tf.batch_to_space(net, crops=crops, block_size=block_size)
 
     with tf.contrib.framework.arg_scope(
