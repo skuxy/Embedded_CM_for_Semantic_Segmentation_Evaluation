@@ -10,10 +10,10 @@ SAVE_DIR = os.path.join(BASE_DIR + 'train_output/',
 
 flags.DEFINE_string('train_dir', SAVE_DIR, 'new folder to save outputs')
 
-flags.DEFINE_string('vgg16_model_path', 'models/VGG16.py',
+flags.DEFINE_string('vgg16_model_path', 'models/VGG16_model.py',
                     'path to vgg16 model definition')
 
-flags.DEFINE_string('vgg19_model_path', 'models/VGG16.py',
+flags.DEFINE_string('vgg19_model_path', 'models/VGG19_model.py',
                     'path to vgg19 model definition')
 
 # used in prepare_tfrecords, PREPARE EM
@@ -25,7 +25,8 @@ flags.DEFINE_string(
 # flags.DEFINE_string('train_dir_name','train','name of train dir inside of dataset dir')
 # flags.DEFINE_string('val_dir_name','val','name of validation dir inside of dataset dir')
 
-flags.DEFINE_string('vgg_init_dir', BASE_DIR + 'zavrad/VGG_TX1',
+# not fookin sure
+flags.DEFINE_string('vgg_init_dir', BASE_DIR + 'datasets/VGG16_TX1/',
                     'folder with vgg weights')
 
 # resized image dimensions

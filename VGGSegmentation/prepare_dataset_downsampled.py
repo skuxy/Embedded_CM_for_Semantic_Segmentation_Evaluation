@@ -116,15 +116,18 @@ def prepare_dataset(name):
             img_name = img_list[i]
             img_prefix = img_name[:-4]
             rgb_path = root_dir + city + '/' + img_name
+
             rgb = ski.data.load(rgb_path)
             rgb = np.ascontiguousarray(
                 rgb[cy_start:cy_end, cx_start:cx_end, :])
+
             rgb = ski.transform.resize(
                 rgb, (FLAGS.img_height, FLAGS.img_width),
                 preserve_range=True,
                 order=3)
 
             rgb = rgb.astype(np.uint8)
+
             depth_path = os.path.join(depth_dir, city,
                                       img_name[:-4] + '.png')
 
@@ -140,36 +143,37 @@ def prepare_dataset(name):
             depth_sum += depth_img
             print((depth_sum / img_cnt).mean((0, 1)))
 
-    gt_path = gt_dir + city + '/' + img_prefix + '.pickle'
+            gt_path = gt_dir + city + '/' + img_prefix + '.pickle'
 
-    with open(gt_path, 'rb') as f:
-        gt_data = pickle.load(f)
-        gt_ids = gt_data[0]
-        # gt_weights = gt_data[1]
-        num_labels = gt_data[2]
-        class_weights = gt_data[4]
-        assert num_labels == (gt_ids < 255).sum()
-        gt_ids = np.ascontiguousarray(gt_ids[cy_start:cy_end, cx_start:cx_end])
-        gt_ids = ski.transform.resize(
-            gt_ids, (FLAGS.img_height, FLAGS.img_width),
-            order=0,
-            preserve_range=True).astype(np.uint8)
-        # ski.io.imsave(save_dir + img_name, gt_ids)
-        gt_ids = gt_ids.astype(np.int8)
-        gt_weights = np.zeros((FLAGS.img_height, FLAGS.img_width), np.float32)
-        for i, wgt in enumerate(class_weights):
-            gt_weights[gt_ids == i] = wgt
+            with open(gt_path, 'rb') as f:
+                gt_data = pickle.load(f)
+            gt_ids = gt_data[0]
+            # gt_weights = gt_data[1]
+            num_labels = gt_data[2]
+            class_weights = gt_data[4]
+            assert num_labels == (gt_ids < 255).sum()
+            gt_ids = np.ascontiguousarray(gt_ids[cy_start:cy_end, cx_start:cx_end])
+            gt_ids = ski.transform.resize(
+                gt_ids, (FLAGS.img_height, FLAGS.img_width),
+                order=0,
+                preserve_range=True).astype(np.uint8)
+            # ski.io.imsave(save_dir + img_name, gt_ids)
+            gt_ids = gt_ids.astype(np.int8)
+            gt_weights = np.zeros((FLAGS.img_height, FLAGS.img_width), np.float32)
 
-    # Just to test correct casting in numpy/skimage - this must be the same
-    # gt_ids_test = ski.util.img_as_ubyte(gt_ids_test).astype(np.int8)
-    # assert (gt_ids != gt_ids_test).sum() == 0
+            for i, wgt in enumerate(class_weights):
+                gt_weights[gt_ids == i] = wgt
 
-    # Calucate new number of labels (255 is now = -1)
-    num_labels = (gt_ids >= 0).sum()
+            # Just to test correct casting in numpy/skimage - this must be the same
+            # gt_ids_test = ski.util.img_as_ubyte(gt_ids_test).astype(np.int8)
+            # assert (gt_ids != gt_ids_test).sum() == 0
 
-    # convert_colors_to_indices(gt_rgb, class_color_map)
-    create_tfrecord(rgb, gt_ids, gt_weights, depth_img, num_labels, img_prefix,
-                    save_dir)
+            # Calucate new number of labels (255 is now = -1)
+            num_labels = (gt_ids >= 0).sum()
+
+            # convert_colors_to_indices(gt_rgb, class_color_map)
+            create_tfrecord(rgb, gt_ids, gt_weights, depth_img, num_labels, img_prefix,
+                            save_dir)
 
 
 def main(argv):

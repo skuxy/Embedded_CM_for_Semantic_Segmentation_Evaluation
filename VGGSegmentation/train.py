@@ -13,12 +13,12 @@ import sys
 
 from shutil import copyfile
 
+# ffs change this relative path
 tf.app.flags.DEFINE_string('config_path', "config/cityscapes.py",
                            """Path to experiment config.""")
 FLAGS = tf.app.flags.FLAGS
 
 helper.import_module('config', FLAGS.config_path)
-print(FLAGS.__dict__['__flags'].keys())
 
 class_names = [
     'road', 'sidewalk', 'building', 'wall', 'fence', 'pole', 'traffic light',
@@ -300,12 +300,16 @@ def train(model, resume_path=None):
 
 def main(argv=None):
     if len(argv) > 1:
-        if argv[1] == 'vgg16':
+        model_str = argv[1]
+        if model_str == 'vgg16':
             model = helper.import_module(argv[1], FLAGS.vgg16_model_path)
-        elif argv[1] == 'vgg19':
-            model = helper.import_module(argv[1], FLAGS.vgg19_model_path)
+            model_path = FLAGS.vgg16_model_path
+        elif model == 'vgg19':
+            model_str = helper.import_module(argv[1], FLAGS.vgg19_model_path)
+            model_path = FLAGS.vgg19_model_path
     else:
         model = helper.import_module('model', FLAGS.vgg16_model_path)
+        model_path = FLAGS.vgg16_model_path
 
     if tf.gfile.Exists(FLAGS.train_dir):
         raise ValueError('Train dir exists: ' + FLAGS.train_dir)
@@ -317,7 +321,7 @@ def main(argv=None):
     f = open(os.path.join(stats_dir, 'log.txt'), 'w')
     sys.stdout = train_helper.Logger(sys.stdout, f)
 
-    copyfile(FLAGS.model_path, os.path.join(FLAGS.train_dir, 'model.py'))
+    copyfile(model_path, os.path.join(FLAGS.train_dir, model_str + '.py'))
     copyfile(FLAGS.config_path, os.path.join(FLAGS.train_dir, 'config.py'))
 
     print('Experiment dir: ' + FLAGS.train_dir)
